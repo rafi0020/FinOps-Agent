@@ -1,0 +1,108 @@
+# FinOps Agent:  docker compose up --build
+#   UI  http://localhost:3100      API docs  http://localhost:8110/docs   (both on 127.0.0.1; see .env.example)
+name: finops-agent
+
+x-db-passwords: &db-passwords
+  FINOPS_OWNER_PASSWORD: ${FINOPS_OWNER_PASSWORD:-finops_owner}
+  FINOPS_APP_PASSWORD: ${FINOPS_APP_PASSWORD:-finops_app}
+  FINOPS_RO_PASSWORD: ${FINOPS_RO_PASSWORD:-finops_ro}
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+psycopg://finops_app:${FINOPS_APP_PASSWORD:-finops_app}@pgbouncer:6432/finops
+  DATABASE_URL_RO: postgresql+psycopg://finops_ro:${FINOPS_RO_PASSWORD:-finops_ro}@pgbouncer:6432/finops
+  DATABASE_URL_OWNER: postgresql+psycopg://finops_owner:${FINOPS_OWNER_PASSWORD:-finops_owner}@db:5432/finops
+  REDIS_URL: redis://redis:6379/0
+  SECRET_KEY: ${SECRET_KEY:-local-demo-secret-change-me}
+  TRUSTED_PROXY: ${TRUSTED_PROXY:-true}
+  ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3100}
+  COOKIE_SECURE: ${COOKIE_SECURE:-false}
+  SEED_DEMO: ${SEED_DEMO:-true}
+  LLM_PROVIDER: ${LLM_PROVIDER:-stub}
+  LLM_MODEL: ${LLM_MODEL:-}
+  LLM_API_KEY: ${LLM_API_KEY:-}
+  LLM_BASE_URL: ${LLM_BASE_URL:-}
+  LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-}
+  LLM_PRICE_INPUT_PER_MTOK: ${LLM_PRICE_INPUT_PER_MTOK:-3.0}
+  LLM_PRICE_OUTPUT_PER_MTOK: ${LLM_PRICE_OUTPUT_PER_MTOK:-15.0}
+  ALLOW_PRIVATE_LLM_URLS: ${ALLOW_PRIVATE_LLM_URLS:-true}
+  RUN_MAX_STEPS: ${RUN_MAX_STEPS:-25}
+  RUN_MAX_TOKENS: ${RUN_MAX_TOKENS:-200000}
+  RUN_MAX_SECONDS: ${RUN_MAX_SECONDS:-300}
+  RUN_MAX_COST_USD: ${RUN_MAX_COST_USD:-1.00}
+  ORG_DAILY_COST_USD: ${ORG_DAILY_COST_USD:-20.00}
+  GLOBAL_DAILY_COST_USD: ${GLOBAL_DAILY_COST_USD:-200.00}
+  ORG_MAX_CONCURRENT_RUNS: ${ORG_MAX_CONCURRENT_RUNS:-5}
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+  OTEL_CAPTURE_CONTENT: ${OTEL_CAPTURE_CONTENT:-false}
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      <<: *db-passwords
+    command: ["postgres", "-c", "max_connections=200", "-c", "shared_buffers=512MB"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - ./infra/postgres/hardening.sql:/opt/finops/hardening.sql:ro
+    ports: ["127.0.0.1:55432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d finops"]
+      interval: 3s
+      retries: 30
+
+  pgbouncer:
+    build: ./infra/pgbouncer
+    environment:
+      <<: *db-passwords
+    ports: ["127.0.0.1:56432:6432"]
+    depends_on:
+      db: { condition: service_healthy }
+
+  redis:
+    image: redis:7-alpine
+    ports: ["127.0.0.1:56379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      retries: 30
+
+  migrate:   # applies migrations and, when SEED_DEMO=true, loads the demo data; then exits
+    build: ./backend
+    command: ["python", "-m", "app.bootstrap"]
+    environment: *backend-env
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  api:
+    build: ./backend
+    environment: *backend-env
+    extra_hosts: ["host.docker.internal:host-gateway"]   # reach a model gateway or Ollama on the host
+    ports: ["127.0.0.1:${API_PORT:-8110}:8000"]   # API docs and /metrics for the person running it
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      pgbouncer: { condition: service_started }
+      redis: { condition: service_healthy }
+
+  worker:   # scale out with:  docker compose up --scale worker=4
+    build: ./backend
+    command: ["python", "-m", "app.worker.run", "--concurrency", "${WORKER_CONCURRENCY:-4}"]
+    environment: *backend-env
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    stop_grace_period: 20s
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      pgbouncer: { condition: service_started }
+      redis: { condition: service_healthy }
+
+  web:
+    build: ./frontend
+    ports: ["${WEB_BIND:-127.0.0.1}:3100:80"]   # plain HTTP: put TLS in front before widening WEB_BIND
+    depends_on: [api]
+
+volumes:
+  pgdata:

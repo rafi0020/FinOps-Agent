@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "FinOps Agent architecture",
+    "subtitle": "Question to report: API, workers, read-only SQL, optional model provider",
+    "output": "docs/architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "users",
+      "type": "external",
+      "label": "Analyst",
+      "sublabel": "Browser",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        120,
+        60
+      ]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "Web UI",
+      "sublabel": "Next.js, nginx",
+      "pos": [
+        250,
+        300
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "API",
+      "sublabel": "FastAPI, roles, budgets",
+      "pos": [
+        480,
+        300
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "redis",
+      "type": "messagebus",
+      "label": "Redis",
+      "sublabel": "live events, rate limits",
+      "pos": [
+        710,
+        160
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "workers",
+      "type": "backend",
+      "label": "Workers",
+      "sublabel": "agent loop, leases",
+      "pos": [
+        710,
+        300
+      ],
+      "size": [
+        130,
+        60
+      ],
+      "tag": "scale with N"
+    },
+    {
+      "id": "pgbouncer",
+      "type": "database",
+      "label": "PgBouncer",
+      "sublabel": "transaction pooling",
+      "pos": [
+        710,
+        450
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL 16",
+      "sublabel": "row-level security",
+      "pos": [
+        920,
+        450
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "Model provider",
+      "sublabel": "optional, tool calling",
+      "pos": [
+        1140,
+        300
+      ],
+      "size": [
+        130,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Docker Compose stack",
+      "wraps": [
+        "web",
+        "api",
+        "redis",
+        "workers",
+        "pgbouncer",
+        "db"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "users-to-web",
+      "from": "users",
+      "to": "web",
+      "label": "HTTP, cookie",
+      "variant": "emphasis"
+    },
+    {
+      "id": "web-to-api",
+      "from": "web",
+      "to": "api",
+      "label": "/api",
+      "variant": "emphasis"
+    },
+    {
+      "id": "api-to-redis",
+      "from": "api",
+      "to": "redis",
+      "label": "wake, limits",
+      "variant": "dashed"
+    },
+    {
+      "id": "workers-to-redis",
+      "from": "workers",
+      "to": "redis",
+      "label": "publish events",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "api-to-pgbouncer",
+      "from": "api",
+      "to": "pgbouncer",
+      "label": "runs, sessions"
+    },
+    {
+      "id": "workers-to-pgbouncer",
+      "from": "workers",
+      "to": "pgbouncer",
+      "label": "steps, leases"
+    },
+    {
+      "id": "pgbouncer-to-db",
+      "from": "pgbouncer",
+      "to": "db",
+      "label": "SQL"
+    },
+    {
+      "id": "workers-to-llm",
+      "from": "workers",
+      "to": "llm",
+      "label": "tool calls",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Request path",
+      "items": [
+        "Browser reaches nginx; nginx proxies /api to the API",
+        "Sessions are server-side; only a token hash is stored",
+        "Every query is scoped by organisation through row-level security"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Agent loop",
+      "items": [
+        "A run is its own queue row, claimed under a lease",
+        "The model picks one tool per step; steps are committed as they finish",
+        "Model-written SQL runs as a read-only role in a read-only transaction"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Model provider",
+      "items": [
+        "Optional: the built-in script runs without one",
+        "Any tool-calling model; outbound URLs pass an address check",
+        "Budgets per run and per organisation cap steps, tokens and cost"
+      ]
+    }
+  ]
+}

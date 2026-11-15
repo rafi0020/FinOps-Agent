@@ -1,0 +1,7 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+GET,GET /api/alerts/events,LocustBadStatusCode(code=500),5,2026-11-13T20:07:52Z,2026-11-13T20:08:01Z
+GET,GET /api/runs/{id},LocustBadStatusCode(code=500),7,2026-11-13T20:07:54Z,2026-11-13T20:07:58Z
+GET,GET /api/runs,LocustBadStatusCode(code=500),1,2026-11-13T20:07:59Z,2026-11-13T20:07:59Z
+GET,GET /api/overview,LocustBadStatusCode(code=500),6,2026-11-13T20:07:52Z,2026-11-13T20:07:58Z
+GET,GET /api/investigations,LocustBadStatusCode(code=500),8,2026-11-13T20:07:52Z,2026-11-13T20:07:59Z
+POST,POST /api/auth/login,LocustBadStatusCode(code=500),9,2026-11-13T20:07:55Z,2026-11-13T20:07:59Z

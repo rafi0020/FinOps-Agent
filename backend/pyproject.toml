@@ -1,0 +1,38 @@
+[project]
+name = "finops-agent"
+version = "1.0.0"
+description = "Agentic financial investigation platform"
+requires-python = ">=3.13"
+dependencies = [
+  "fastapi", "uvicorn[standard]", "pydantic", "pydantic-settings",
+  "sqlalchemy[asyncio]", "psycopg[binary,pool]", "alembic", "redis",
+  "httpx", "sqlglot", "cryptography", "prometheus-client",
+  "opentelemetry-sdk", "opentelemetry-exporter-otlp-proto-http",
+]
+
+[dependency-groups]
+dev = ["pytest", "pytest-asyncio", "ruff", "locust"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+markers = ["live: needs a real LLM gateway (NINEROUTER_API_KEY)"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "ASYNC"]
+ignore = ["S101", "B008", "E501"]  # line length is left to the formatter
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "ASYNC", "F811"]
+"seed/*" = ["S311", "S608"]
+"alembic/*" = ["S608"]
+"app/finance/alerts_eval.py" = ["S608"]  # SQL assembled from constants in this file only
+"eval/*" = ["S"]
+"load/*" = ["S"]
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]
+known-first-party = ["app", "seed", "eval"]

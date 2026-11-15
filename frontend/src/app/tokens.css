@@ -1,0 +1,38 @@
+/* Light is the default: warm paper, ink, one oxblood accent. Dark is the same printing house at night. */
+:root {
+  color-scheme: light;
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
+  --text-xs: 0.8125rem; --text-sm: 0.9375rem; --text-md: 1.0625rem; --text-lg: 1.25rem; --text-xl: 1.5rem; --text-2xl: 2rem; --text-3xl: 2.75rem;
+  --text-display: clamp(2.25rem, 1.5rem + 2.6vw, 3.4rem); --text-section: 1.5rem; --text-title: 1.1875rem; --text-lead: 1.3125rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+  --color-error: oklch(47% 0.16 35); --color-success: oklch(45% 0.1 150);
+  --container: 1200px; --gutter: 40px; --gap-columns: 40px; --section-gap: 64px;
+  --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
+  /* paper and ink */
+  --color-paper: oklch(96.5% 0.012 85); --color-paper-2: oklch(98.7% 0.006 85); --color-paper-3: oklch(93.4% 0.016 82);
+  --color-ink: oklch(21% 0.014 60); --color-ink-2: oklch(35% 0.014 60); --color-muted: oklch(46% 0.013 65);
+  --color-rule: oklch(85.5% 0.012 80); --color-rule-2: oklch(68% 0.014 75);
+  /* one accent: oxblood */
+  --color-accent: oklch(38% 0.12 12); --color-accent-ink: oklch(98.5% 0.006 85); --color-accent-soft: oklch(92.5% 0.03 15); --color-focus: oklch(40% 0.13 12);
+  /* the agent's steps and chart series are ink tints, not a second hue */
+  --color-cool: oklch(38% 0.014 60); --color-cool-soft: oklch(92% 0.01 80);
+  --color-ok: oklch(43% 0.1 150); --color-ok-soft: oklch(93% 0.04 150); --color-bad: oklch(47% 0.16 35); --color-bad-soft: oklch(93.5% 0.03 35);
+  /* type: three faces, no more */
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-body: "Source Sans 3", "Source Sans Pro", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+  --display-weight: 400; --heading-weight: 500; --tracking-display: -0.018em;
+  --radius-card: 0; --radius-pill: 0; --rule-hair: 1px;
+  --shadow-card: none;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-paper: oklch(19.5% 0.011 60); --color-paper-2: oklch(23% 0.012 60); --color-paper-3: oklch(16.5% 0.01 60);
+  --color-ink: oklch(94% 0.012 85); --color-ink-2: oklch(84% 0.012 80); --color-muted: oklch(72% 0.012 75);
+  --color-rule: oklch(34% 0.012 70); --color-rule-2: oklch(50% 0.013 70);
+  --color-accent: oklch(74% 0.11 15); --color-accent-ink: oklch(20% 0.03 15); --color-accent-soft: oklch(31% 0.06 15); --color-focus: oklch(80% 0.1 15);
+  --color-cool: oklch(82% 0.012 80); --color-cool-soft: oklch(28% 0.01 70);
+  --color-ok: oklch(76% 0.13 150); --color-ok-soft: oklch(28% 0.04 150); --color-bad: oklch(75% 0.14 40); --color-bad-soft: oklch(29% 0.05 35);
+}

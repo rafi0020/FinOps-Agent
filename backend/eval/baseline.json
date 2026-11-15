@@ -1,0 +1,4 @@
+{
+ "note": "Recorded on the held-out test split, 2026-11-14. A stored result more than 0.05 below these fails tests/test_eval_gate.py.",
+ "test": {"answer_accuracy": 0.9167, "overall_pass_rate": 0.9}
+}

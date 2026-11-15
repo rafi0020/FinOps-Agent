@@ -1,0 +1,203 @@
+[
+ {
+  "org": "northwind",
+  "kind": "lookup",
+  "question": "What was total revenue in 2025?",
+  "reference_sql": "SELECT sum(revenue_usd) FROM analytics.order_lines WHERE order_date >= '2025-01-01' AND order_date < '2026-01-01'",
+  "tolerance": 0.01,
+  "unit": "usd",
+  "expected": 359108160.59,
+  "id": "q03"
+ },
+ {
+  "org": "northwind",
+  "kind": "lookup",
+  "question": "What was the gross margin in the North region in Q1 2026?",
+  "reference_sql": "SELECT sum(gross_profit_usd) / sum(revenue_usd) FROM analytics.order_lines WHERE region = 'North' AND order_date >= '2026-01-01' AND order_date < '2026-04-01'",
+  "tolerance": 0.01,
+  "unit": "ratio",
+  "expected": 0.30325131695865704,
+  "id": "q06"
+ },
+ {
+  "org": "northwind",
+  "kind": "lookup",
+  "question": "What was the average discount rate for Enterprise customers in Q3 2026?",
+  "reference_sql": "SELECT sum(discount_usd) / sum(revenue_usd + discount_usd) FROM analytics.order_lines WHERE segment = 'Enterprise' AND order_date >= '2026-07-01' AND order_date < '2026-10-01'",
+  "tolerance": 0.01,
+  "unit": "ratio",
+  "expected": 0.08030079800688716,
+  "id": "q09"
+ },
+ {
+  "org": "northwind",
+  "kind": "lookup",
+  "question": "How much revenue did the Electronics category generate in 2025?",
+  "reference_sql": "SELECT sum(revenue_usd) FROM analytics.order_lines WHERE category = 'Electronics' AND order_date >= '2025-01-01' AND order_date < '2026-01-01'",
+  "tolerance": 0.01,
+  "unit": "usd",
+  "expected": 77988285.78,
+  "id": "q12"
+ },
+ {
+  "org": "northwind",
+  "kind": "lookup",
+  "question": "What was the operating margin in Q3 2026?",
+  "reference_sql": "SELECT ((SELECT sum(gross_profit_usd) FROM analytics.order_lines WHERE order_date >= '2026-07-01' AND order_date < '2026-10-01')\n                    - (SELECT sum(amount_usd) FROM analytics.expenses WHERE expense_month >= '2026-07-01' AND expense_month < '2026-10-01'))\n                   / (SELECT sum(revenue_usd) FROM analytics.order_lines WHERE order_date >= '2026-07-01' AND order_date < '2026-10-01')",
+  "tolerance": 0.01,
+  "unit": "ratio",
+  "expected": 0.04671138612684766,
+  "id": "q15"
+ },
+ {
+  "org": "harbor",
+  "kind": "lookup",
+  "question": "What was total revenue in Q1 2026?",
+  "reference_sql": "SELECT sum(revenue_usd) FROM analytics.order_lines WHERE order_date >= '2026-01-01' AND order_date < '2026-04-01'",
+  "tolerance": 0.01,
+  "unit": "usd",
+  "expected": 70084419.49,
+  "id": "q18"
+ },
+ {
+  "org": "harbor",
+  "kind": "lookup",
+  "question": "What was the gross margin in the North region in Q3 2026?",
+  "reference_sql": "SELECT sum(gross_profit_usd) / sum(revenue_usd) FROM analytics.order_lines WHERE region = 'North' AND order_date >= '2026-07-01' AND order_date < '2026-10-01'",
+  "tolerance": 0.01,
+  "unit": "ratio",
+  "expected": 0.3046925092273113,
+  "id": "q21"
+ },
+ {
+  "org": "northwind",
+  "kind": "lookup",
+  "question": "What was Enterprise segment revenue in Q3 2026?",
+  "reference_sql": "SELECT sum(revenue_usd) FROM analytics.order_lines WHERE segment = 'Enterprise' AND order_date >= '2026-07-01' AND order_date < '2026-10-01'",
+  "tolerance": 0.01,
+  "unit": "usd",
+  "expected": 78064957.32,
+  "id": "q24"
+ },
+ {
+  "org": "northwind",
+  "kind": "compare",
+  "question": "Which product category brought in the most revenue in 2025?",
+  "reference_sql": "SELECT category FROM analytics.order_lines WHERE order_date >= '2025-01-01' AND order_date < '2026-01-01' GROUP BY 1 ORDER BY sum(revenue_usd) DESC LIMIT 1",
+  "answer": "name",
+  "expected": "Metals",
+  "id": "q27"
+ },
+ {
+  "org": "northwind",
+  "kind": "compare",
+  "question": "Who was our largest customer by revenue in Q3 2026?",
+  "reference_sql": "SELECT customer_name FROM analytics.order_lines WHERE order_date >= '2026-07-01' AND order_date < '2026-10-01' GROUP BY 1 ORDER BY sum(revenue_usd) DESC LIMIT 1",
+  "answer": "name",
+  "expected": "West Enterprise Customer 0179",
+  "id": "q30"
+ },
+ {
+  "org": "northwind",
+  "kind": "compare",
+  "question": "By how many percentage points did West gross margin change from Q2 2026 to Q3 2026?",
+  "reference_sql": "SELECT (SELECT sum(gross_profit_usd) / sum(revenue_usd) FROM analytics.order_lines WHERE region = 'West' AND order_date >= '2026-07-01' AND order_date < '2026-10-01') - (SELECT sum(gross_profit_usd) / sum(revenue_usd) FROM analytics.order_lines WHERE region = 'West' AND order_date >= '2026-04-01' AND order_date < '2026-07-01')",
+  "tolerance": 0.02,
+  "unit": "points",
+  "expected": -0.10419552171297417,
+  "id": "q33"
+ },
+ {
+  "org": "northwind",
+  "kind": "compare",
+  "question": "How much higher was Q3 2026 revenue than Q3 2025 revenue, in dollars?",
+  "reference_sql": "SELECT (SELECT sum(revenue_usd) FROM analytics.order_lines WHERE true AND order_date >= '2026-07-01' AND order_date < '2026-10-01') - (SELECT sum(revenue_usd) FROM analytics.order_lines WHERE true AND order_date >= '2025-07-01' AND order_date < '2025-10-01')",
+  "tolerance": 0.02,
+  "unit": "usd",
+  "expected": 16955188.66,
+  "id": "q36"
+ },
+ {
+  "org": "northwind",
+  "kind": "root_cause",
+  "question": "Why did gross margin fall in the West region in Q3 2026?",
+  "must": [
+   "calder"
+  ],
+  "any_of": [
+   "cost",
+   "price",
+   "supplier"
+  ],
+  "id": "q39"
+ },
+ {
+  "org": "northwind",
+  "kind": "root_cause",
+  "question": "Metals profitability got worse in the third quarter of 2026. Why?",
+  "must": [
+   "calder"
+  ],
+  "any_of": [
+   "cost",
+   "price",
+   "supplier"
+  ],
+  "id": "q42"
+ },
+ {
+  "org": "northwind",
+  "kind": "root_cause",
+  "question": "Was the Q2 2026 rise in discounting spread across all segments or concentrated?",
+  "must": [
+   "smb"
+  ],
+  "any_of": [
+   "discount"
+  ],
+  "id": "q45"
+ },
+ {
+  "org": "harbor",
+  "kind": "root_cause",
+  "question": "Which group of customers started paying well after the due date in 2026?",
+  "must": [
+   "north"
+  ],
+  "any_of": [
+   "late",
+   "overdue",
+   "slow",
+   "delay"
+  ],
+  "id": "q48"
+ },
+ {
+  "org": "northwind",
+  "kind": "ambiguous",
+  "question": "Show me the figures for the one we discussed.",
+  "behaviour": "ask_user",
+  "id": "q51"
+ },
+ {
+  "org": "northwind",
+  "kind": "ambiguous",
+  "question": "Break it down the usual way.",
+  "behaviour": "ask_user",
+  "id": "q54"
+ },
+ {
+  "org": "northwind",
+  "kind": "unanswerable",
+  "question": "What was revenue in 2019?",
+  "behaviour": "decline",
+  "id": "q57"
+ },
+ {
+  "org": "northwind",
+  "kind": "unanswerable",
+  "question": "What is the current cash balance in our bank accounts?",
+  "behaviour": "decline",
+  "id": "q60"
+ }
+]

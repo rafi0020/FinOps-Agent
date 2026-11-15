@@ -1,0 +1,27 @@
+Count,Message,Traceback,Nodes
+9,URL http://localhost:3100/api/auth/login: code=500,"  File ""/home/rafiul/Desktop/Rafiul/New_Project/finops-agent/backend/.venv/lib/python3.13/site-packages/locust/user/users.py"", line 166, in run
+    self.on_start()
+    ~~~~~~~~~~~~~^^
+  File ""/home/rafiul/Desktop/Rafiul/New_Project/finops-agent/backend/load/locustfile.py"", line 33, in on_start
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File ""/home/rafiul/Desktop/Rafiul/New_Project/finops-agent/backend/.venv/lib/python3.13/site-packages/locust/contrib/fasthttp.py"", line 530, in raise_for_status
+    raise error
+  File ""/home/rafiul/Desktop/Rafiul/New_Project/finops-agent/backend/.venv/lib/python3.13/site-packages/locust/contrib/fasthttp.py"", line 313, in request
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File ""/home/rafiul/Desktop/Rafiul/New_Project/finops-agent/backend/.venv/lib/python3.13/site-packages/locust/contrib/fasthttp.py"", line 530, in raise_for_status
+    raise error
+  File ""/home/rafiul/Desktop/Rafiul/New_Project/finops-agent/backend/.venv/lib/python3.13/site-packages/locust/contrib/fasthttp.py"", line 179, in _send_request_safe_mode
+    return self.client.urlopen(url, method=method, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/rafiul/Desktop/Rafiul/New_Project/finops-agent/backend/.venv/lib/python3.13/site-packages/geventhttpclient/useragent.py"", line 679, in urlopen
+    last_error = self._handle_error(e, url=req.url)
+  File ""/home/rafiul/Desktop/Rafiul/New_Project/finops-agent/backend/.venv/lib/python3.13/site-packages/geventhttpclient/useragent.py"", line 556, in _handle_error
+    raise e.with_traceback(e.__traceback__)
+  File ""/home/rafiul/Desktop/Rafiul/New_Project/finops-agent/backend/.venv/lib/python3.13/site-packages/geventhttpclient/useragent.py"", line 671, in urlopen
+    self._verify_status(resp.status_code, url=req.url)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/home/rafiul/Desktop/Rafiul/New_Project/finops-agent/backend/.venv/lib/python3.13/site-packages/locust/contrib/fasthttp.py"", line 645, in _verify_status
+    raise LocustBadStatusCode(url, code=status_code)
+","rafiul-HP-ENVY-Laptop-15-ep1xxx_ef47b747f9ac4d3e93c8b116c76876a9, rafiul-HP-ENVY-Laptop-15-ep1xxx_811f2c7dc91a45238507587270bee863, rafiul-HP-ENVY-Laptop-15-ep1xxx_6b98156f354a4d0ab5e9aed443a56164, rafiul-HP-ENVY-Laptop-15-ep1xxx_c384d8eb549f4cf6aea72b49faeb2385"

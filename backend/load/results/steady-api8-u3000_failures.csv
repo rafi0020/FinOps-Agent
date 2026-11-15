@@ -1,0 +1,3 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+GET,GET /api/runs/{id},LocustBadStatusCode(code=500),2,2026-11-13T20:14:47Z,2026-11-13T20:14:47Z
+GET,GET /api/overview,LocustBadStatusCode(code=500),1,2026-11-13T20:14:46Z,2026-11-13T20:14:46Z

@@ -1,0 +1,21 @@
+# Overrides for load measurement only:
+#   docker compose -f docker-compose.yml -f docker-compose.load.yml up -d --build --scale api=4 --scale worker=4
+# The model is the built-in script, and the limits that protect a real deployment from one noisy user or
+# organisation are lifted so that the test measures the platform rather than its own throttles.
+x-load-env: &load-env
+  LLM_PROVIDER: stub
+  LOGIN_ATTEMPTS_PER_MINUTE: "1000000"
+  LOGIN_IP_PER_MINUTE: "1000000"
+  RUNS_PER_MINUTE: "1000000"
+  ORG_MAX_CONCURRENT_RUNS: "1000"
+  ORG_MAX_QUEUED_RUNS: "100000"
+  ORG_DAILY_COST_USD: "1000000"
+  SCRYPT_N: "4096"          # cheaper password hashing, so thousands of simulated sign-ins do not dominate
+  LOG_LEVEL: WARNING
+
+services:
+  api:
+    environment: *load-env
+    ports: !reset []         # no fixed host port, so the service can be scaled; reach it through the web container
+  worker:
+    environment: *load-env
