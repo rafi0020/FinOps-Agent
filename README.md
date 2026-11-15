@@ -35,9 +35,9 @@ personal portfolio project built on synthetic data. It is not a customer deploym
 
 ## Architecture
 
-![FinOps Agent architecture](docs/architecture.png)
+![FinOps Agent architecture](docs/architecture.gif)
 
-[Interactive diagram](docs/architecture.html) (open the file in a browser) · [Architecture notes](docs/ARCHITECTURE.md) · [Database schema](docs/DATABASE.md) · [API reference](docs/API.md)
+[Interactive diagram](https://rafi0020.github.io/FinOps-Agent/docs/architecture.html) · [Architecture notes](docs/ARCHITECTURE.md) · [Database schema](docs/DATABASE.md) · [API reference](docs/API.md)
 
 | Layer | Technology |
 |---|---|
@@ -346,7 +346,7 @@ To report a vulnerability, open a private security advisory on the GitHub reposi
 
 | Document | What is in it |
 |---|---|
-| [docs/architecture.html](docs/architecture.html) | Interactive architecture diagram (open in a browser) |
+| [docs/architecture.html](https://rafi0020.github.io/FinOps-Agent/docs/architecture.html) | Interactive architecture diagram |
 | [docs/API.md](docs/API.md) | Every endpoint |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, request flow, design decisions, failure handling |
 | [docs/AI_DISCLOSURE.md](docs/AI_DISCLOSURE.md) | How AI assistance was used in this project |
