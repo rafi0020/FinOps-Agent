@@ -41,12 +41,29 @@
   }
   function delay(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
-  /** A recorded GET may be one body or a timeline of bodies (a run that was still working when first read). */
-  function pick(entry, id) {
+  /** A recorded GET may be one body or a timeline of bodies (a run that was still working when first read).
+      If the recording also holds an action on the same item (an "investigate" button), the timeline starts when
+      the visitor takes that action, and the first state is shown until then. */
+  var armedAt = {};
+  function relatedWrite(path) {
+    var scopes = sources();
+    for (var i = 0; i < scopes.length; i++) {
+      var writes = scopes[i].writes || {};
+      for (var k in writes) { var p = k.slice(k.indexOf(" ") + 1); if (p === path || p.indexOf(path + "/") === 0) return true; }
+    }
+    return false;
+  }
+  function arm(path) {
+    var parts = path.split("/");
+    for (var n = parts.length; n > 2; n--) armedAt[parts.slice(0, n).join("/")] = Date.now();
+  }
+  function pick(entry, id, path) {
     if (!entry) return null;
     if (!entry.seq) return entry;
-    if (!seqStart[id]) seqStart[id] = Date.now();
-    var elapsed = (Date.now() - seqStart[id]) / (entry.scale || 1);
+    var start;
+    if (relatedWrite(path)) { start = armedAt[path]; if (!start) return entry.seq[0]; }
+    else { if (!seqStart[id]) seqStart[id] = Date.now(); start = seqStart[id]; }
+    var elapsed = (Date.now() - start) / (entry.scale || 1) + (armedAt[path] ? 3000 : 0); // head start: the page refreshes on the run's last event
     var chosen = entry.seq[0];
     for (var i = 0; i < entry.seq.length; i++) if (entry.seq[i].t <= elapsed) chosen = entry.seq[i];
     return chosen;
@@ -62,13 +79,55 @@
     var hit = ta.filter(function (t) { return set[t]; }).length;
     return hit / Math.max(ta.length, tb.length);
   }
-  function bestWrite(list, body) {
-    var best = list[0], score = -1;
-    list.forEach(function (w) {
-      var s = JSON.stringify(w.req) === JSON.stringify(body) ? 2 : similarity(w.req, body);
-      if (s > score) { score = s; best = w; }
+  function counter(name) {
+    var n = 0;
+    try { n = Number(sessionStorage.getItem("demo.n." + name) || 0); sessionStorage.setItem("demo.n." + name, String(n + 1)); } catch (e) {}
+    return n;
+  }
+  /** The recorded write that best matches what was sent; equally good matches are used in turn, so asking again gives the next one. */
+  function bestWrite(list, body, id) {
+    var scored = list.map(function (w) { return { w: w, s: JSON.stringify(w.req) === JSON.stringify(body) ? 2 : similarity(w.req, body) }; });
+    var top = Math.max.apply(null, scored.map(function (x) { return x.s; }));
+    var ties = scored.filter(function (x) { return x.s === top; });
+    return ties[counter(id) % ties.length].w;
+  }
+
+  /** Recorded images and PDFs, as blobs. */
+  var blobs = {};
+  function binary(req) {
+    var scopes = sources();
+    for (var i = 0; i < scopes.length; i++) {
+      var bin = scopes[i].bin || {};
+      var hit = bin[req.key] || bin[req.path];
+      if (typeof hit === "string") hit = (fixtures.bin || {})[hit];
+      if (hit) {
+        var id = (currentUser() || "anon") + req.key;
+        if (!blobs[id]) {
+          var raw = atob(hit.b64), bytes = new Uint8Array(raw.length);
+          for (var j = 0; j < raw.length; j++) bytes[j] = raw.charCodeAt(j);
+          blobs[id] = new Blob([bytes], { type: hit.type });
+        }
+        return blobs[id];
+      }
+    }
+    return null;
+  }
+
+  /** A key without its volatile parameters (timestamps change on every load), so "last 24 hours" still finds its recording. */
+  function alias(key) {
+    var i = key.indexOf("?");
+    if (i < 0) return key;
+    var kept = key.slice(i + 1).split("&").filter(function (p) {
+      var v = decodeURIComponent(p.split("=")[1] || "");
+      return !/^\d{4}-\d{2}-\d{2}T\d|^\d{10,13}$/.test(v);
     });
-    return best;
+    return kept.length ? key.slice(0, i) + "?" + kept.join("&") : key.slice(0, i);
+  }
+  function lookup(scope, key, path) {
+    var routes = scope.routes || {};
+    if (routes[key]) return routes[key];
+    if (!scope._alias) { scope._alias = {}; Object.keys(routes).forEach(function (k) { scope._alias[alias(k)] = routes[k]; }); }
+    return scope._alias[alias(key)] || routes[path] || scope._alias[path] || null;
   }
 
   function sources() {
@@ -97,21 +156,25 @@
     var scopes = sources();
 
     if (method === "GET" || method === "HEAD") {
+      var blob = binary(req);
+      if (blob) return new Response(blob, { status: 200, headers: { "Content-Type": blob.type } });
       for (var i = 0; i < scopes.length; i++) {
-        var routes = scopes[i].routes || {};
-        var hit = routes[req.key] || routes[req.path];
-        if (hit) { var chosen = pick(hit, (currentUser() || "anon") + req.key); return respond(chosen.status, chosen.body); }
+        var hit = lookup(scopes[i], req.key, req.path);
+        if (hit) { var chosen = pick(hit, (currentUser() || "anon") + req.key, req.path); return respond(chosen.status, chosen.body); }
       }
       if (!currentUser() && req.path.indexOf("/auth/") < 0) return respond(401, { detail: "Not signed in." });
       if (req.path.indexOf("/auth/me") > 0) return respond(401, { detail: "Not signed in." });
+      console.warn("demo: not recorded", method, req.key);
       return respond(404, { detail: "That is not part of the recorded demo." });
     }
 
+    arm(req.path);
     for (var j = 0; j < scopes.length; j++) {
       var list = (scopes[j].writes || {})[method + " " + req.path];
-      if (list && list.length) { var w = bestWrite(list, body); return respond(w.status, w.body); }
+      if (list && list.length) { var w = bestWrite(list, body, method + req.path); return respond(w.status, w.body); }
     }
     if (!currentUser()) return respond(401, { detail: "Not signed in." });
+    console.warn("demo: not recorded", method, req.path);
     return respond(200, { ok: true, demo: true });
   }
 
@@ -160,6 +223,132 @@
   DemoEventSource.prototype.close = function () { this.readyState = 2; this._timers.forEach(clearTimeout); };
   window.EventSource = DemoEventSource;
 
+  /* XMLHttpRequest: only used for uploads with a progress bar. Pretend the upload ran, then answer as recorded. */
+  var xhrOpen = XMLHttpRequest.prototype.open, xhrSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.open = function (method, url) {
+    var req = parse(String(url));
+    this.__demo = req ? { method: String(method).toUpperCase(), req: req } : null;
+    return xhrOpen.apply(this, arguments);
+  };
+  XMLHttpRequest.prototype.send = function (body) {
+    var d = this.__demo;
+    if (!d) return xhrSend.apply(this, arguments);
+    var xhr = this;
+    function set(key, value) { Object.defineProperty(xhr, key, { value: value, configurable: true }); }
+    for (var i = 1; i <= 5; i++) (function (n) {
+      setTimeout(function () {
+        var e = new ProgressEvent("progress", { lengthComputable: true, loaded: n, total: 5 });
+        if (xhr.upload && xhr.upload.onprogress) xhr.upload.onprogress(e);
+      }, n * 150);
+    })(i);
+    setTimeout(function () {
+      handle(d.method, d.req, {}, null).then(function (res) {
+        return res.text().then(function (text) {
+          set("readyState", 4); set("status", res.status); set("responseText", text); set("response", text);
+          if (xhr.onreadystatechange) xhr.onreadystatechange(new Event("readystatechange"));
+          if (xhr.onload) xhr.onload(new ProgressEvent("load"));
+          if (xhr.onloadend) xhr.onloadend(new ProgressEvent("loadend"));
+        });
+      });
+    }, 900);
+  };
+
+  /* <img src="/api/..."> does not go through fetch: swap in the recorded image once the fixtures are loaded. */
+  var setAttr = Element.prototype.setAttribute;
+  function swapImage(el, value, assign) {
+    var req = parse(String(value));
+    if (!req) { assign(value); return; }
+    assign("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
+    ready.then(function () { var blob = binary(req); if (blob) assign(URL.createObjectURL(blob)); else console.warn("demo: not recorded", "image", req.key); });
+  }
+  Element.prototype.setAttribute = function (name, value) {
+    if (this.tagName === "IMG" && String(name).toLowerCase() === "src") return swapImage(this, value, setAttr.bind(this, "src"));
+    return setAttr.call(this, name, value);
+  };
+  var srcProp = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src");
+  if (srcProp && srcProp.set) {
+    Object.defineProperty(HTMLImageElement.prototype, "src", {
+      configurable: true, enumerable: srcProp.enumerable, get: srcProp.get,
+      set: function (value) { swapImage(this, value, function (v) { srcProp.set.call(this, v); }.bind(this)); },
+    });
+  }
+
+  /* WebSocket: replay a recorded call. What the server said on connecting is sent at once; each message the page
+     sends is answered with the recorded reply to the most similar message sent in that call. */
+  function DemoWebSocket(url) {
+    var self = this;
+    this.url = String(url);
+    this.readyState = 0;
+    this.binaryType = "blob";
+    this.onopen = this.onmessage = this.onclose = this.onerror = null;
+    this._l = {};
+    this._timers = [];
+    this._used = {};
+    ready.then(function () {
+      var req = parse(self.url.replace(/^ws/, "http"));
+      var general = req && req.path.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, "*");
+      var rec = null;
+      var scopes = sources().concat(Object.keys(fixtures.users).map(function (k) { return fixtures.users[k]; }));
+      scopes.forEach(function (s) { if (!rec && general && s.ws && s.ws[general]) rec = s.ws[general]; });
+      if (!rec) { self._close(1006); return; }
+      var count = 0;
+      try { count = Number(sessionStorage.getItem("demo.calls") || 0); sessionStorage.setItem("demo.calls", String(count + 1)); } catch (e) {}
+      var wanted = req.path.split("/").pop();
+      self._session = rec.sessions.filter(function (s) { return s.id === wanted; })[0] || rec.sessions[count % rec.sessions.length];
+      self.readyState = 1;
+      self._fire("open", new Event("open"));
+      self._play(self._session.open, 0);
+    });
+  }
+  DemoWebSocket.CONNECTING = 0; DemoWebSocket.OPEN = 1; DemoWebSocket.CLOSING = 2; DemoWebSocket.CLOSED = 3;
+  DemoWebSocket.prototype.OPEN = 1;
+  DemoWebSocket.prototype.addEventListener = function (type, fn) { (this._l[type] = this._l[type] || []).push(fn); };
+  DemoWebSocket.prototype.removeEventListener = function (type, fn) { this._l[type] = (this._l[type] || []).filter(function (f) { return f !== fn; }); };
+  DemoWebSocket.prototype._fire = function (type, event) {
+    (this._l[type] || []).slice().forEach(function (fn) { fn.call(this, event); }, this);
+    var handler = this["on" + type];
+    if (handler) handler.call(this, event);
+  };
+  DemoWebSocket.prototype._play = function (frames, offset) {
+    var self = this;
+    var last = 0;
+    (frames || []).forEach(function (f) {
+      last = Math.min(f.t, last + 1500);
+      self._timers.push(setTimeout(function () {
+        if (self.readyState === 1) self._fire("message", new MessageEvent("message", { data: f.data }));
+      }, (offset || 0) + last));
+    });
+    return last;
+  };
+  DemoWebSocket.prototype.send = function (data) {
+    if (this.readyState !== 1 || typeof data !== "string" || !this._session) return;
+    var msg;
+    try { msg = JSON.parse(data); } catch (e) { return; }
+    if (msg.type === "text") {
+      var turns = this._session.turns, best = -1, score = -1, i;
+      for (i = 0; i < turns.length; i++) { var s = this._used[i] ? -0.5 : similarity(turns[i].send, msg.text); if (s > score) { score = s; best = i; } }
+      if (score < 0.15) for (i = 0; i < turns.length; i++) if (!this._used[i]) { best = i; break; }
+      this._used[best] = true;
+      this._play(turns[best].frames, 250);
+    } else if (msg.type === "end") {
+      var self = this, span = this._play(this._session.end, 100);
+      this._timers.push(setTimeout(function () { self._close(1000); }, span + 400));
+    }
+  };
+  DemoWebSocket.prototype._close = function (code) {
+    if (this.readyState === 3) return;
+    this.readyState = 3;
+    this._timers.forEach(clearTimeout);
+    this._fire("close", new CloseEvent("close", { code: code || 1000 }));
+  };
+  DemoWebSocket.prototype.close = function () { this._close(1000); };
+  var RealWebSocket = window.WebSocket;
+  window.WebSocket = function (url, protocols) {
+    var p = parse(String(url).replace(/^ws/, "http"));
+    return p && p.path.indexOf("/api/") === 0 ? new DemoWebSocket(url) : new RealWebSocket(url, protocols);
+  };
+  window.WebSocket.CONNECTING = 0; window.WebSocket.OPEN = 1; window.WebSocket.CLOSING = 2; window.WebSocket.CLOSED = 3;
+
   /* ---- the pages link to "/ask/" and similar; on Pages the site lives under /<repository>/, so add that prefix ---- */
   function fixLinks() {
     if (!BASE) return;
@@ -175,6 +364,11 @@
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watchLinks); else watchLinks();
 
+  /* Voice cannot be replayed (nothing recognises speech), so a demo of a voice product keeps the microphone off. */
+  if (cfg.noMic && navigator.mediaDevices) {
+    navigator.mediaDevices.getUserMedia = function () { return Promise.reject(new DOMException("The microphone is off in the demo.", "NotAllowedError")); };
+  }
+
   /* ---- a small, dismissible note so nobody mistakes the demo for a live deployment ---- */
   function note() {
     if (document.getElementById("demo-note")) return;
@@ -183,7 +377,7 @@
     box.setAttribute("role", "note");
     box.style.cssText = "position:fixed;left:12px;bottom:12px;z-index:2147483000;max-width:min(360px,calc(100vw - 24px));font:12px/1.45 system-ui,sans-serif;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:9px 30px 9px 12px;box-shadow:0 6px 24px rgba(0,0,0,.35)";
     var text = document.createElement("span");
-    text.textContent = (cfg.title || "This") + " demo replays data recorded from the running system. Changes are not saved. ";
+    text.textContent = (cfg.title || "This") + " demo replays data recorded from the running system. Changes are not saved. " + (cfg.extra ? cfg.extra + " " : "");
     var link = document.createElement("a");
     link.href = cfg.repo || "#"; link.target = "_blank"; link.rel = "noopener";
     link.textContent = "Source on GitHub";
