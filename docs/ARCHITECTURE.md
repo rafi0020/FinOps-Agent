@@ -1,6 +1,6 @@
 # Architecture
 
-The diagram is generated from [`architecture.diagram.json`](architecture.diagram.json); an [interactive version](https://rafi0020.github.io/FinOps-Agent/docs/architecture.html) is also available, and a static image is in [`architecture.png`](architecture.png).
+The diagram is generated from [`architecture.diagram.json`](architecture.diagram.json); an [interactive version](https://rafi0020.github.io/FinOps-Agent/diagram/) is also available, and a static image is in [`architecture.png`](architecture.png).
 
 ## Overview
 

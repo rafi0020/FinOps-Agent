@@ -8,6 +8,8 @@ personal portfolio project built on synthetic data. It is not a customer deploym
 
 ![FinOps Agent overview](docs/screenshots/01-overview.png)
 
+**[Live demo](https://rafi0020.github.io/FinOps-Agent/)**: the real web interface on GitHub Pages, answered from responses recorded on the running system (API, database, worker and model). Sign in with a demo account from the login page. Runs replay as they were recorded and changes are not saved. [How the demo works](frontend/demo/README.md).
+
 ## Features
 
 **Asking**
@@ -37,7 +39,7 @@ personal portfolio project built on synthetic data. It is not a customer deploym
 
 ![FinOps Agent architecture](docs/architecture.gif)
 
-[Interactive diagram](https://rafi0020.github.io/FinOps-Agent/docs/architecture.html) · [Architecture notes](docs/ARCHITECTURE.md) · [Database schema](docs/DATABASE.md) · [API reference](docs/API.md)
+[Live demo](https://rafi0020.github.io/FinOps-Agent/) · [Architecture diagram](https://rafi0020.github.io/FinOps-Agent/diagram/) · [Architecture notes](docs/ARCHITECTURE.md) · [Database schema](docs/DATABASE.md) · [API reference](docs/API.md)
 
 | Layer | Technology |
 |---|---|
@@ -346,7 +348,7 @@ To report a vulnerability, open a private security advisory on the GitHub reposi
 
 | Document | What is in it |
 |---|---|
-| [docs/architecture.html](https://rafi0020.github.io/FinOps-Agent/docs/architecture.html) | Interactive architecture diagram |
+| [Architecture diagram](https://rafi0020.github.io/FinOps-Agent/diagram/) | Interactive architecture diagram |
 | [docs/API.md](docs/API.md) | Every endpoint |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, request flow, design decisions, failure handling |
 | [docs/AI_DISCLOSURE.md](docs/AI_DISCLOSURE.md) | How AI assistance was used in this project |
